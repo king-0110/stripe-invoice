@@ -42,7 +42,7 @@ if "account_info" not in st.session_state:
 if "customers" not in st.session_state:
     st.session_state.customers = [{"email": "client@example.com", "name": "Acme Corp"}]
 if "items" not in st.session_state:
-    st.session_state.items = [
+    st.session_state["items"] = [
         {"id": "1", "description": "Professional Consulting & Development", "unit_amount": 250.0, "quantity": 1}
     ]
 if "logs" not in st.session_state:
@@ -226,25 +226,25 @@ with col_prod:
     currency = st.selectbox("Invoice Currency", ["USD", "EUR", "GBP", "CAD", "AUD", "JPY", "INR"])
 
     st.markdown("**Line Items:**")
-    for idx, item in enumerate(st.session_state.items):
+    for idx, item in enumerate(st.session_state["items"]):
         cols = st.columns([4, 2, 1, 1])
         with cols[0]:
-            st.session_state.items[idx]["description"] = st.text_input(f"Desc #{idx+1}", value=item["description"], key=f"desc_{idx}")
+            st.session_state["items"][idx]["description"] = st.text_input(f"Desc #{idx+1}", value=item["description"], key=f"desc_{idx}")
         with cols[1]:
-            st.session_state.items[idx]["unit_amount"] = st.number_input(f"Price #{idx+1}", min_value=0.0, value=float(item["unit_amount"]), step=10.0, key=f"price_{idx}")
+            st.session_state["items"][idx]["unit_amount"] = st.number_input(f"Price #{idx+1}", min_value=0.0, value=float(item["unit_amount"]), step=10.0, key=f"price_{idx}")
         with cols[2]:
-            st.session_state.items[idx]["quantity"] = st.number_input(f"Qty #{idx+1}", min_value=1, value=int(item["quantity"]), key=f"qty_{idx}")
+            st.session_state["items"][idx]["quantity"] = st.number_input(f"Qty #{idx+1}", min_value=1, value=int(item["quantity"]), key=f"qty_{idx}")
         with cols[3]:
             st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
-            if len(st.session_state.items) > 1 and st.button("❌", key=f"del_{idx}"):
-                st.session_state.items.pop(idx)
+            if len(st.session_state["items"]) > 1 and st.button("❌", key=f"del_{idx}"):
+                st.session_state["items"].pop(idx)
                 st.rerun()
 
     if st.button("➕ Add Line Item"):
-        st.session_state.items.append({"id": str(time.time()), "description": "", "unit_amount": 100.0, "quantity": 1})
+        st.session_state["items"].append({"id": str(time.time()), "description": "", "unit_amount": 100.0, "quantity": 1})
         st.rerun()
 
-    subtotal = sum(i["unit_amount"] * i["quantity"] for i in st.session_state.items)
+    subtotal = sum(i["unit_amount"] * i["quantity"] for i in st.session_state["items"])
     curr_symbol = "€" if currency == "EUR" else "£" if currency == "GBP" else "¥" if currency == "JPY" else "₹" if currency == "INR" else "$"
     st.markdown(f"### Subtotal: `{curr_symbol}{subtotal:,.2f} {currency}`")
 
@@ -258,11 +258,11 @@ col_summary, col_monitor = st.columns([5, 7])
 with col_summary:
     st.markdown("### 📊 Summary & Dispatch")
     st.markdown(f"- **Recipients:** {len(st.session_state.customers)} queued")
-    st.markdown(f"- **Line Items:** {len(st.session_state.items)} item(s)")
+    st.markdown(f"- **Line Items:** {len(st.session_state["items"])} item(s)")
     st.markdown(f"- **Due Term:** Net {days_due} days")
     st.markdown(f"- **Amount per Invoice:** `{curr_symbol}{subtotal:,.2f} {currency}`")
 
-    can_dispatch = st.session_state.is_validated and len(st.session_state.customers) > 0 and len(st.session_state.items) > 0
+    can_dispatch = st.session_state.is_validated and len(st.session_state.customers) > 0 and len(st.session_state["items"]) > 0
 
     if st.button("🚀 Dispatch Invoices Now", type="primary", use_container_width=True, disabled=not can_dispatch):
         st.session_state.dispatching = True
@@ -289,7 +289,7 @@ with col_summary:
                     cust_id = new_cust.id
 
                 # 2. Create invoice items
-                for item in st.session_state.items:
+                for item in st.session_state["items"]:
                     if not item["description"].strip():
                         continue
                     stripe.InvoiceItem.create(
