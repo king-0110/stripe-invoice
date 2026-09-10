@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($env:Path = \"$env:Path;C:\\\\Program Files\\\\Git\\\\cmd;C:\\\\Program Files\\\\Git\\\\bin;C:\\\\Users\\\\iam01\\\\AppData\\\\Local\\\\Programs\\\\Git\\\\cmd\"; git init; git add .; git commit -m \"Initial commit: Stripe Invoice Dispatcher PRO app\"; git branch -M main; git remote add origin https://github.com/king-0110/stripe-invoice.git; git push -u origin main -f)",
+      "PowerShell(Get-ChildItem \"C:\\\\Program Files\\\\Git\" -ErrorAction SilentlyContinue; Get-ChildItem \"C:\\\\Program Files \\(x86\\)\\\\Git\" -ErrorAction SilentlyContinue; Get-ChildItem \"$env:LOCALAPPDATA\\\\Programs\\\\Git\" -ErrorAction SilentlyContinue; where.exe git 2>&1)"
+    ]
+  }
+}
