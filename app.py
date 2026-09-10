@@ -56,6 +56,10 @@ def log_event(type_str, message):
     timestamp = time.strftime("%H:%M:%S")
     st.session_state.logs.insert(0, {"time": timestamp, "type": type_str, "message": message})
 
+# Keep the Stripe API key set across Streamlit reruns (needed for dispatch after verify)
+if st.session_state.get("api_key"):
+    stripe.api_key = st.session_state["api_key"]
+
 # App Header
 st.markdown("## ⚡ Stripe Invoice Dispatcher PRO <span style='font-size: 12px; background: rgba(99,102,241,0.2); color: #818cf8; padding: 2px 8px; border-radius: 10px;'>Python Edition</span>", unsafe_allow_html=True)
 st.markdown("Automated Stripe billing, batch customer invoicing & dispatch built in Python & Streamlit.", unsafe_allow_html=True)
@@ -78,11 +82,17 @@ with col1:
 with col2:
     st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
     if st.button("Connect & Verify", use_container_width=True):
-        if not entered_key.strip():
+        key = entered_key.strip()
+        valid_prefixes = ("sk_test_", "sk_live_", "rk_test_", "rk_live_")
+        if not key:
             st.error("Please enter a Stripe key.")
+        elif key.startswith("pk_"):
+            st.error("This is a publishable key (pk_). Invoicing requires a Secret (sk_) or Restricted (rk_) key.")
+        elif not key.startswith(valid_prefixes):
+            st.error("Invalid key format. Stripe keys must start with sk_test_, sk_live_, rk_test_, or rk_live_.")
         else:
             try:
-                stripe.api_key = entered_key.strip()
+                stripe.api_key = key
                 account = stripe.Account.retrieve()
 
                 # Try fetching balance
@@ -96,7 +106,7 @@ with col2:
                 except:
                     pass
 
-                st.session_state.api_key = entered_key.strip()
+                st.session_state.api_key = key
                 st.session_state.is_validated = True
                 st.session_state.account_info = {
                     "id": account.get("id"),
@@ -104,15 +114,30 @@ with col2:
                     "country": account.get("country", "US"),
                     "currency": curr,
                     "charges_enabled": account.get("charges_enabled", False),
-                    "livemode": entered_key.strip().startswith("sk_live_") or entered_key.strip().startswith("rk_live_"),
+                    "livemode": key.startswith("sk_live_") or key.startswith("rk_live_"),
                     "balance": balance_avail,
                 }
                 log_event("SUCCESS", f"Successfully connected to Stripe account: {st.session_state.account_info['business_name']}")
                 st.success("Connected successfully!")
                 st.rerun()
+            except stripe.error.AuthenticationError:
+                st.session_state.is_validated = False
+                st.session_state.account_info = None
+                stripe.api_key = None
+                msg = "Authentication failed. This API key is invalid, expired, or revoked."
+                log_event("ERROR", msg)
+                st.error(msg)
+            except stripe.error.PermissionError:
+                st.session_state.is_validated = False
+                st.session_state.account_info = None
+                stripe.api_key = None
+                msg = "This restricted key lacks permission to read account details. Grant it read access."
+                log_event("ERROR", msg)
+                st.error(msg)
             except Exception as e:
                 st.session_state.is_validated = False
                 st.session_state.account_info = None
+                stripe.api_key = None
                 log_event("ERROR", f"Stripe authentication failed: {str(e)}")
                 st.error(f"Authentication failed: {str(e)}")
 
